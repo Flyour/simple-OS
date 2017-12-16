@@ -20,10 +20,10 @@ GDT_SIZE  equ  $ - GDT_BASE
 GDT_LIMIT equ  GDT_SIZE - 1 ;定义了段描述符表的段界限
 times 60 dq 0 ;此处预留60个描述u符的空位
 SELECTOR_CODE equ (0x0001 << 3) + TI_GDT + RPL0
-SELECTOR_DATA equ (0x0003 << 3) + TI_GDT + RPL0
+SELECTOR_DATA equ (0x0002 << 3) + TI_GDT + RPL0
 SELECTOR_VIDEO equ (0x0003 << 3) + TI_GDT + RPL0 ;定义了三个选择子
 
-;下面是gdt的指针，钱2个字节是gdt界限，后4个字节是gdt的起始地址
+;下面是gdt的指针，前2个字节是gdt界限，后4个字节是gdt的起始地址
 gdt_ptr dw  GDT_LIMIT
         dd  GDT_BASE
 
@@ -41,7 +41,7 @@ loadermsg  db   '2 loader in real.'
 ;AL = 显示输入方式
 loader_start:
     mov sp, LOADER_BASE_ADDR
-    mov bp, loadermsg i;ES：BP = 字符串地址
+    mov bp, loadermsg ;ES：BP = 字符串地址
     mov cx, 17
     mov ax, 0x1301
     mov bx, 0x001f
@@ -49,7 +49,7 @@ loader_start:
     int 0x10 ; 调用中断
 
     in al, 0x92
-    or al, 0000_0010B
+    or al, 00000010B
     out 0x92, al ;修改0x92端口的数据，打开A20
     lgdt [gdt_ptr] ;加载gdt
 
@@ -61,6 +61,7 @@ loader_start:
     jmp dword SELECTOR_CODE:p_mode_start ;通过jmp指令刷新流水线
 
 [bits 32]
+;使用选择子初始化各段寄存器
 p_mode_start:
     mov ax, SELECTOR_DATA
     mov ds, ax
@@ -69,7 +70,10 @@ p_mode_start:
     mov esp, LOADER_STACK_TOP
     mov ax, SELECTOR_VIDEO
     mov gs, ax
-    mov byte [gs:160], 'P'
+    mov byte [gs:160], 'P' ;往显存第80个字符的位置写入字符'p'
+    mov byte [gs:161], 0xA4
+    mov byte [gs:280], 'A'
+    mov byte [gs:281], 0xA4
     jmp $
 
 
