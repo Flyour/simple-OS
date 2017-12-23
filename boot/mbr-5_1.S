@@ -38,7 +38,7 @@ SECTION MBR vstart=0x7c00
 
     mov eax,LOADER_START_SECTOR ;LOADER_START_SECTOR 0X2,loader在硬盘中起始扇区lba地址
     mov bx,LOADER_BASE_ADDR ; LOADER_BASE_ADDR = 0X900, loader程序在内存中的位置
-    mov cx,8 ;表示要从硬盘读取几个扇区的数据作为loader
+    mov cx,4 ;表示要从硬盘读取几个扇区的数据作为loader
     call rd_disk_m_16  ;调用程序从硬盘读取数据
 
     jmp LOADER_BASE_ADDR + 0x300

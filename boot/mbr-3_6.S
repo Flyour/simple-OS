@@ -20,7 +20,8 @@ SECTION MBR vstart=0x7c00
     ;AL  上卷的行数（如果为0,表示全部）
     mov ax,0x600
     mov bx,0x700
-    mov cx,0 mov dx,0x184f
+    mov cx,0
+    mov dx,0x184f
     int 0x10
 
     ; 往显存空间放入字符
