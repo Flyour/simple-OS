@@ -221,7 +221,7 @@ put_int:
                       ;若当前字符不为‘0’，要是edi减1恢复指向当前字符
     jmp .put_each_num
 
-.full0
+.full0:
     mov cl, '0'       ;输入的数字为全0时，则只打印0
 
 .put_each_num:
