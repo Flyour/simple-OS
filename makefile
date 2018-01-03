@@ -3,7 +3,7 @@ ENTRY_POINT = 0xc0001500
 AS = nasm
 CC = gcc
 LD = ld
-LIB = -I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/
+LIB = -I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/
 ASFLAGS = -f elf
 # -fno-builtin告诉编译器不要采用内部函数，因为以后实现中会自定义与内部函数
 #  同名的函数; -Wstrict-prototypes 要求函数声明中必须有参数类型;
@@ -15,7 +15,7 @@ LDFLAGS = -Ttext $(ENTRY_POINT) -e main -Map $(BUILD_DIR)/kernel.map \
 OBJS = $(BUILD_DIR)/main.o  $(BUILD_DIR)/init.o   $(BUILD_DIR)/interrupt.o\
        $(BUILD_DIR)/timer.o $(BUILD_DIR)/kernel.o $(BUILD_DIR)/print.o \
 	   $(BUILD_DIR)/debug.o $(BUILD_DIR)/string.o $(BUILD_DIR)/bitmap.o \
-	   $(BUILD_DIR)/memory.o
+	   $(BUILD_DIR)/memory.o $(BUILD_DIR)/thread.o
 
 ##################  c代码编译 ##############################
 $(BUILD_DIR)/main.o: kernel/main.c lib/kernel/print.h lib/stdint.h \
@@ -50,6 +50,10 @@ $(BUILD_DIR)/bitmap.o: lib/kernel/bitmap.c lib/kernel/bitmap.h lib/stdint.h\
 $(BUILD_DIR)/memory.o: kernel/memory.c kernel/memory.h kernel/global.h \
 	lib/kernel/print.h lib/stdint.h lib/kernel/bitmap.h kernel/debug.h \
 	lib/string.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/thread.o: thread/thread.c thread/thread.h kernel/global.h \
+	lib/stdint.h lib/string.h kernel/memory.h
 	$(CC) $(CFLAGS) $< -o $@
 
 
