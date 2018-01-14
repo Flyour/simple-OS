@@ -1,11 +1,23 @@
+#how much memory the emulated marchine will have
 megs: 32
+
+#filename of ROM images
 romimage: file=/usr/local/share/bochs/BIOS-bochs-latest
 vgaromimage: file=/usr/local/share/bochs/VGABIOS-lgpl-latest
+
+#what disk images will be used
 floppya: 1_44=a.img, status = inserted
 
+#choose the boot disk
 boot: disk
+
+#where do we send log messages
 log: bochs.out
-mouse: enabled=0
+
+#disable or start the mouse
+mouse: enabled=1
+
+#enable key mapping, using US layout as default
 keyboard: type=mf, serial_delay=200, paste_delay=100000
 keyboard: keymap=/usr/local/share/bochs/keymaps/x11-pc-us.map
 keyboard: user_shortcut=ctrl-alt-del

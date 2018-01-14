@@ -13,8 +13,7 @@
 #define EFLAGS_IF 0x00000200   //elfags寄存器的if 位为1
 #define GET_EFLAGS(EFLAG_VAR) asm volatile ("pushfl; popl %0" : "=g" (EFLAG_VAR))
 
-/*中断门描述符结构体*/
-struct gate_desc{
+/*中断门描述符结构体*/ struct gate_desc{
     uint16_t func_offset_low_word;
     uint16_t selector;
     uint8_t dcount;         //此项是双字计数字段，是门描述符中的第4字节
@@ -90,9 +89,30 @@ static void general_intr_handler(uint8_t vec_nr){
     //0x2f是从片8259A上的最后一个IRQ引脚,保留项
         return;
     }
-    put_str ("int vecotr : 0x");
-    put_int (vec_nr);
-    put_char('\n');
+    /* 将光标置为0,从屏幕左上角清出一片打印异常信息的区域，方便阅读 */
+    set_cursor(0);
+    int cursor_pos = 0;
+    while(cursor_pos < 320) {
+        put_char(' ');
+        cursor_pos++;
+    }
+
+    set_cursor(0);
+    put_str("!!!!! excetion message begin !!!!!!!!!!!\n");
+    set_cursor(88); //从第2行第8个字符开始打印
+    put_str(intr_name[vec_nr]);
+    if (vec_nr == 14) { //若为pagefault，将缺少的地址打印出来并悬停
+        int page_fault_vaddr = 0;
+        asm ("movl %%cr2, %0" : "=r" (page_fault_vaddr));
+        //cr2是存放造成page_fault的地址
+
+        put_str("\npage fault addr is");
+        put_int(page_fault_vaddr);
+    }
+    put_str("\n!!!!!!!! excetion message end !!!!!!!!!!!!\n");
+    //能进入中断处理程序就表示已经处在关中断情况下
+    //不会出现调度进程的情况，故下面的死循环不会再被中断
+    while(1);
 }
 
 /* 完成一般中断处理函数注册及异常名称注册 */
@@ -140,6 +160,14 @@ void idt_init(){
     uint64_t idt_operand = ((sizeof(idt)-1) | (((uint64_t)((uint32_t)idt))<<16));
     asm volatile("lidt %0": : "m" (idt_operand));//‘m’是内存约束
     put_str("idt_init done\n");
+}
+
+/* 在中断处理程序数组第vector_no个元素中
+ * 注册安装中断处理程序function */
+void register_handler(uint8_t vector_no, intr_handler function) {
+    /* idt_table数组中的函数是在进入中断后根据中断向量号调用的
+     * 见kernel/kernel.S 的call [idt_table + %1*4] */
+    idt_table[vector_no] = function;
 }
 
 /* 开中断并返回开中断前的状态 */

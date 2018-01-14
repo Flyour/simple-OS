@@ -1,4 +1,5 @@
 #include "list.h"
+#include "stdint.h"
 #include "interrupt.h"
 
 /* 初始化双向链表list */
@@ -12,7 +13,7 @@ void list_init (struct list* list){
 /* 把链表元素elem插入在元素before之前 */
 void list_insert_before(struct list_elem* before, struct list_elem* elem){
     /* intr_disable函数将中断关闭，以保证为原子操作 */
-    /* 旧中断状态用变量old_status 保存 */k
+    /* 旧中断状态用变量old_status 保存 */
     enum intr_status old_status = intr_disable();
 
     /* 将before前驱元素的后继元素更新为elem，暂时是before脱离链表 */
@@ -37,7 +38,7 @@ void list_append(struct list* plist, struct list_elem* elem){
 }
 
 /* 使元素pelem脱离链表*/
-void list_remove(strucct list_elem* pelem){
+void list_remove(struct list_elem* pelem){
     enum intr_status old_status = intr_disable();
 
     pelem->prev->next = pelem->next;
@@ -54,7 +55,7 @@ struct list_elem* list_pop(struct list* plist){
 }
 
 /* 从链表中查找元素obj_elem, 成功时返回true，失败时返回false */
-bool elem_find(struct list* plist, struct list_elem* obj_elem){
+_Bool elem_find(struct list* plist, struct list_elem* obj_elem){
     struct list_elem* elem = plist->head.next;
     while (elem != &plist->tail){
         if (elem == obj_elem){
@@ -99,6 +100,6 @@ uint32_t list_len(struct list* plist) {
 }
 
 /* 判断链表是否为空，空时返回true，否则返回false */
-bool list_empty(struct list* plist) {
+_Bool list_empty(struct list* plist) {
     return (plist->head.next == &plist->tail ? true : false);
 }
