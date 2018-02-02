@@ -4,7 +4,7 @@
 #include "print.h"
 #include "io.h"
 
-#define IDT_DESC_CNT 0x21       //目前总共支持的中断数
+#define IDT_DESC_CNT 0x30      //目前总共支持的中断数
 #define PIC_M_CTRL 0X20         //主片的控制端口是0x20
 #define PIC_M_DATA 0x21         //主片的数据端口是0x21
 #define PIC_S_CTRL 0Xa0         //从片的控制端口是0xa0
@@ -76,9 +76,15 @@ static void pic_init(void){
 
     /*打开主片上IR0,也就是目前只接受时钟产生的中断*/
     /* 这里是OCW1操作,对外设的中断信号进行屏蔽*/
-    outb (PIC_M_DATA, 0xfe);
-    outb (PIC_S_DATA, 0xff);
+    //outb (PIC_M_DATA, 0xfe);
+    //outb (PIC_S_DATA, 0xff);
 
+    //outb (PIC_M_DATA, 0xfd);
+    //outb (PIC_S_DATA, 0xff);
+
+    /* 打开键盘中断和时钟中断，其他全部关闭*/
+    outb (PIC_M_DATA, 0xfc);
+    outb (PIC_S_DATA, 0xff);
     put_str(" pic_init done\n");
 }
 

@@ -7,6 +7,7 @@
 #include "list.h"
 #include "interrupt.h"
 #include "debug.h"
+#include "process.h"
 
 #define PG_SIZE 4096
 
@@ -122,9 +123,9 @@ void schedule(void) {
         //重新将当前线程的ticks再重置为其priority
         cur->status = TASK_READY;
     } else {
-        put_str("sorry fuckkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk");
         /* 若此线程需要某事件发生后才能继续上cpu运行，
          * 不需要将其加入队列，因为当前线程不在就绪队列中*/
+        //intr_enable();
     }
 
     ASSERT(!list_empty(&thread_ready_list));
@@ -136,6 +137,10 @@ void schedule(void) {
             general_tag, \
             thread_tag);
     next->status = TASK_RUNNING;
+
+    /* 激活任务页表等 */
+    process_activate(next);
+
     switch_to(cur, next);
 }
 
@@ -147,4 +152,37 @@ void thread_init(void) {
     /* 将当前main函数创建为线程*/
     make_main_thread();
     put_str("thread_init done\n");
+}
+
+/* 当前线程将自己阻塞，标志其状态为stat. */
+void thread_block(enum task_status stat) {
+    /* stat取值为TASK_BLOCKED, TASK_WAITING, TASK_HANGINT,
+     * 也就只有这三种状态才不会被调度 */
+    ASSERT(((stat == TASK_BLOCKED) || \
+            (stat == TASK_WAITING) || \
+            (stat == TASK_HANGING)));
+    enum intr_status old_status = intr_disable();
+    struct task_struct* cur_thread = running_thread();
+    cur_thread->status = stat;  //置其状态为stat
+    schedule();                 //将当前线程换下处理器
+    /* 将当前线程被解除阻塞后才继续运行下面的intr_set_status */
+    intr_set_status(old_status);
+}
+
+/* 将线程pthread解除阻塞*/
+void thread_unblock(struct task_struct* pthread) {
+    enum intr_status old_status = intr_disable();
+    ASSERT(((pthread->status == TASK_BLOCKED) || \
+            (pthread->status == TASK_WAITING) || \
+            (pthread->status == TASK_HANGING)));
+    if (pthread->status != TASK_READY) {
+        ASSERT(!elem_find(&thread_ready_list, &pthread->general_tag));
+        if (elem_find(&thread_ready_list, &pthread->general_tag)) {
+            PANIC("thread_unblock: blocked thread in ready_list\n");
+        }
+        list_push(&thread_ready_list, &pthread->general_tag);
+        // 放到队列的最前面，使其尽快得到调度
+        pthread->status = TASK_READY;
+    }
+    intr_set_status(old_status);
 }

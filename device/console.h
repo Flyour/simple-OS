@@ -1,0 +1,14 @@
+#ifndef __DEVICE_CONSOLE_H
+#define __DEVICE_CONSOLE_H
+#include "stdint.h"
+/* 初始化终端 */
+void console_init(void);
+/* 终端中输出字符串 */
+void console_put_str(char* str);
+/* 终端中输出字符 */
+void console_put_char(uint8_t char_asci);
+/* 终端输出十六进制整数 */
+void console_put_int(uint32_t num);
+void console_acquire(void);
+void console_release(void);
+#endif
