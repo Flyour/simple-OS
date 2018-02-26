@@ -91,7 +91,7 @@ struct gdt_desc {
 /* ----------IDT描述符属性------------------------------*/
 #define IDT_DESC_P 1
 #define IDT_DESC_DPL0 0
-#define iDT_DESC_DPL3 3
+#define IDT_DESC_DPL3 3
 #define IDT_DESC_32_TYPE    0XE     //32位的门
 #define IDT_DESC_16_TYPE    0X6     //16位的的门，不会用到
 
@@ -108,10 +108,12 @@ struct gdt_desc {
 #define EFLAGS_IOPL_0   (0 << 12)   //IOPL
 
 #define NULL ((void*)0)
-#define DIV_ROUND_UP(X, STEP) ((X + STEP-1) / (STEP))
 #define _Bool int
 #define true 1
 #define false 0
+#define DIV_ROUND_UP(X, STEP) ((X + STEP-1) / (STEP))
+#define UNUSED __attribute__((unused))
 
 #define PG_SIZE 4096
+
 #endif

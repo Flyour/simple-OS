@@ -24,7 +24,7 @@ void memcpy(void* dst_, const void* src_, uint32_t size){
 int memcmp(const void* a_, const void* b_, uint32_t size){
     const char* a = a_;
     const char* b = b_;
-    ASSERT(a != NULL &&  b!= NULL);  // || || && ?
+    ASSERT(a != NULL ||  b!= NULL);  // || || && ?
     while (size-- > 0 ){
         if(*a != *b){
             return *a > *b ? 1 : -1;

@@ -8,15 +8,29 @@
 #include "interrupt.h"
 #include "debug.h"
 #include "process.h"
+#include "sync.h"
 
 #define PG_SIZE 4096
 
+struct task_struct* idle_thread;    //idle线程
 struct task_struct* main_thread;    //主线程PCB
 struct list thread_ready_list;      //就绪队列
 struct list thread_all_list;        //所有任务队列
 static struct list_elem* thread_tag;    //用于保存队列中的线程结点
 
+struct lock pid_lock;   //分配pid锁
+
 void switch_to(struct task_struct* cur, struct task_struct* next);
+
+/* 系统空闲时运行的线程 */
+static void idle(void* arg UNUSED) {
+    while(1) {
+        thread_block(TASK_BLOCKED);
+        //执行hlt时必须要保证目前处在开中断的情况下
+        asm volatile ("sti; hlt" : : : "memory");
+        //sti是开中断，hlt是将系统挂起，cpu利用率为0
+    }
+}
 
 /* 获取当前线程pcb指针 */
 struct task_struct* running_thread(){
@@ -31,6 +45,15 @@ static void kernel_thread(thread_func* function, void* func_arg){
     /* 执行function前要开中断，避免后面的时钟中断被屏蔽，而无法调度其他线程*/
     intr_enable();
     function(func_arg);
+}
+
+/* 分配pid */
+static pid_b allocate_pid(void) {
+    static pid_b next_pid = 0;
+    lock_acquire(&pid_lock);
+    next_pid++;
+    lock_release(&pid_lock);
+    return next_pid;
 }
 
 /* 初始化线程栈thread_stack,
@@ -52,6 +75,7 @@ void thread_create(struct task_struct* pthread, thread_func function, void* func
 /* 初始化线程基本信息 */
 void init_thread(struct task_struct* pthread, char* name, int prio){
     memset(pthread, 0, sizeof(*pthread));
+    pthread->pid = allocate_pid();
     strcpy(pthread->name, name);
 
     if (pthread == main_thread){
@@ -128,7 +152,11 @@ void schedule(void) {
         //intr_enable();
     }
 
-    ASSERT(!list_empty(&thread_ready_list));
+    if (list_empty(&thread_ready_list)) {
+        thread_unblock(idle_thread);
+        //唤醒阻塞的idle_thread线程，结果是执行hlt汇编指令，将系统挂起
+    }
+
     thread_tag = NULL;  //thread_tag清空
     /* 将thread_ready_list队列中的第一个就绪线程弹出，
      * 准备将其调度上cpu */
@@ -142,16 +170,6 @@ void schedule(void) {
     process_activate(next);
 
     switch_to(cur, next);
-}
-
-/* 初始化线程环境 */
-void thread_init(void) {
-    put_str("thread_init start\n");
-    list_init(&thread_ready_list);
-    list_init(&thread_all_list);
-    /* 将当前main函数创建为线程*/
-    make_main_thread();
-    put_str("thread_init done\n");
 }
 
 /* 当前线程将自己阻塞，标志其状态为stat. */
@@ -186,3 +204,36 @@ void thread_unblock(struct task_struct* pthread) {
     }
     intr_set_status(old_status);
 }
+
+/* 主动让出cpu,换其他线程运行 */
+void thread_yield(void) {
+    struct task_struct* cur = running_thread();
+    enum intr_status old_status = intr_disable();
+    ASSERT(!elem_find(&thread_ready_list, &cur->general_tag));
+    list_append(&thread_ready_list, &cur->general_tag);
+    cur->status = TASK_READY;
+    schedule();
+    intr_set_status(old_status);
+}
+
+/* 初始化线程环境 */
+void thread_init(void) {
+    put_str("thread_init start\n");
+
+    list_init(&thread_ready_list);
+    list_init(&thread_all_list);
+    lock_init(&pid_lock);
+
+    /* 将当前main函数创建为线程*/
+    make_main_thread();
+
+    /* 创建idle线程 */
+    idle_thread = thread_start("idle", 10, idle, NULL);
+    //idle_thread线程会执行，但是由于函数的内容会立刻阻塞
+
+    put_str("thread_init done\n");
+}
+
+
+
+

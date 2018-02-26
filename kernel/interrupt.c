@@ -4,7 +4,7 @@
 #include "print.h"
 #include "io.h"
 
-#define IDT_DESC_CNT 0x30      //目前总共支持的中断数
+#define IDT_DESC_CNT 0x81     //目前总共支持的中断数
 #define PIC_M_CTRL 0X20         //主片的控制端口是0x20
 #define PIC_M_DATA 0x21         //主片的数据端口是0x21
 #define PIC_S_CTRL 0Xa0         //从片的控制端口是0xa0
@@ -12,6 +12,7 @@
 
 #define EFLAGS_IF 0x00000200   //elfags寄存器的if 位为1
 #define GET_EFLAGS(EFLAG_VAR) asm volatile ("pushfl; popl %0" : "=g" (EFLAG_VAR))
+extern uint32_t syscall_handler(void);
 
 /*中断门描述符结构体*/ struct gate_desc{
     uint16_t func_offset_low_word;
@@ -49,12 +50,15 @@ static void make_idt_desc(struct gate_desc* p_gdesc, uint8_t attr, intr_handler 
 
 /*初始化中断描述符表*/
 static void idt_desc_init(void){
-    int i;
+    int i, lastindex = IDT_DESC_CNT - 1;
     for (i=0; i<IDT_DESC_CNT; i++){
         //调用make_idt_desc函数来填充中断门描述符表
         make_idt_desc(&idt[i], IDT_DESC_ATTR_DPL0, intr_entry_table[i]);
     }
-    put_str("idt_desc_init done\n");
+    /* 单独处理系统调用，系统调用对应的中断门dpl为3,
+     * 中断处理程序为单独的syscall_handler*/
+    make_idt_desc(&idt[lastindex], IDT_DESC_ATTR_DPL3, syscall_handler);
+    put_str("   idt_desc_init done\n");
 }
 
 
@@ -74,17 +78,14 @@ static void pic_init(void){
     outb (PIC_S_DATA, 0x02);    //ICW3：设置从片连接到主片的IR2引脚
     outb (PIC_S_DATA, 0x01);    //ICW4：8086模式，正常EOI
 
-    /*打开主片上IR0,也就是目前只接受时钟产生的中断*/
-    /* 这里是OCW1操作,对外设的中断信号进行屏蔽*/
-    //outb (PIC_M_DATA, 0xfe);
-    //outb (PIC_S_DATA, 0xff);
+    /* IRQ用于级联从片，必须打开，否则无法响应从片上的中断
+     * 主片上打开的中断有IRQ0的时钟，IRQ1的键盘和级联从片的IRQ2
+     * 其他全部关闭 */
+    outb (PIC_M_DATA, 0xf8);
 
-    //outb (PIC_M_DATA, 0xfd);
-    //outb (PIC_S_DATA, 0xff);
+    /* 打开从片上的IRQ14，此引脚接受硬盘控制器的中断 */
+    outb (PIC_S_DATA, 0xbf);
 
-    /* 打开键盘中断和时钟中断，其他全部关闭*/
-    outb (PIC_M_DATA, 0xfc);
-    outb (PIC_S_DATA, 0xff);
     put_str(" pic_init done\n");
 }
 

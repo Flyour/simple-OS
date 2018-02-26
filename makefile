@@ -18,17 +18,20 @@ OBJS = $(BUILD_DIR)/main.o  $(BUILD_DIR)/init.o   $(BUILD_DIR)/interrupt.o\
 	   $(BUILD_DIR)/memory.o $(BUILD_DIR)/thread.o $(BUILD_DIR)/list.o \
 	   $(BUILD_DIR)/list.o $(BUILD_DIR)/switch.o $(BUILD_DIR)/sync.o \
 	   $(BUILD_DIR)/console.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/tss.o \
-       $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/process.o
+       $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/process.o \
+	   $(BUILD_DIR)/syscall.o $(BUILD_DIR)/syscall_init.o \
+       $(BUILD_DIR)/stdio.o $(BUILD_DIR)/ide.o $(BUILD_DIR)/stdio-kernel.o
 
 ##################  c代码编译 ##############################
 $(BUILD_DIR)/main.o: kernel/main.c lib/kernel/print.h lib/stdint.h \
 	kernel/init.h device/console.h kernel/interrupt.h \
-	device/timer.h
+	device/timer.h device/ide.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/init.o: kernel/init.c kernel/init.h lib/kernel/print.h \
 	lib/stdint.h kernel/interrupt.h device/timer.h device/console.h \
-	userprog/tss.h device/keyboard.h kernel/memory.h thread/thread.h
+	userprog/tss.h device/keyboard.h kernel/memory.h thread/thread.h \
+	userprog/syscall_init.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/interrupt.o: kernel/interrupt.c kernel/interrupt.h \
@@ -54,16 +57,16 @@ $(BUILD_DIR)/bitmap.o: lib/kernel/bitmap.c lib/kernel/bitmap.h lib/stdint.h\
 
 $(BUILD_DIR)/memory.o: kernel/memory.c kernel/memory.h kernel/global.h \
 	lib/kernel/print.h lib/stdint.h lib/kernel/bitmap.h kernel/debug.h \
-	lib/string.h
+	lib/string.h lib/kernel/list.h kernel/interrupt.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/thread.o: thread/thread.c thread/thread.h kernel/global.h \
 	lib/stdint.h lib/string.h kernel/memory.h kernel/interrupt.h	\
-	lib/kernel/print.h lib/kernel/list.h kernel/debug.h
+	lib/kernel/print.h lib/kernel/list.h kernel/debug.h thread/sync.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/list.o: lib/kernel/list.c kernel/interrupt.h \
-	lib/kernel/list.h lib/stdint.h
+	lib/kernel/list.h lib/stdint.h kernel/global.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/sync.o: thread/sync.c thread/sync.h lib/stdint.h \
@@ -92,6 +95,30 @@ $(BUILD_DIR)/process.o: userprog/process.c userprog/process.h \
 	lib/stdint.h thread/thread.h kernel/global.h kernel/memory.h \
 	kernel/debug.h userprog/tss.h device/console.h lib/string.h \
 	userprog/userprog.h kernel/interrupt.h lib/kernel/list.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/syscall.o: lib/user/syscall.c lib/user/syscall.h \
+	lib/stdint.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/syscall_init.o: userprog/syscall_init.c  \
+	userprog/syscall_init.h lib/stdint.h thread/thread.h \
+	lib/kernel/print.h lib/user/syscall.h lib/string.h \
+	device/console.h kernel/memory.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/stdio.o: lib/stdio.c lib/stdio.h lib/stdint.h  \
+	lib/string.h kernel/global.h lib/user/syscall.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/ide.o: device/ide.c device/ide.h lib/kernel/stdio-kernel.h \
+	lib/stdint.h kernel/debug.h kernel/global.h lib/stdio.h thread/sync.h\
+	lib/kernel/list.h lib/kernel/io.h device/timer.h lib/string.h \
+	kernel/interrupt.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/stdio-kernel.o: lib/kernel/stdio-kernel.c device/console.h \
+	lib/kernel/stdio-kernel.h kernel/global.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ################## 汇编代码编译 ##############################

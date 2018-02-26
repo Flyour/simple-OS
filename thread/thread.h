@@ -8,6 +8,7 @@
 
 /* 自定义通用函数类型，它将在很多线程函数中作为型参类型*/
 typedef void thread_func(void*);
+typedef int16_t pid_b;
 
 /* 进程或线程的状态 */
 enum task_status {
@@ -77,6 +78,7 @@ struct thread_stack {
 /* 进程或线程的pcb,程序控制块 */
 struct task_struct {
     uint32_t* self_kstack;  //各内核线程都用自己的内核栈
+    pid_b pid;
     enum task_status status;
     char name[16];
     uint8_t priority;
@@ -94,6 +96,7 @@ struct task_struct {
 
     uint32_t* pgdir;    //用于存放进程页目录表的虚拟地址
     struct virtual_addr userprog_vaddr; //用户进程的虚拟地址池
+    struct mem_block_desc u_block_desc[DESC_CNT];  //用户进程内存块描述符
     uint32_t stack_magic;   //一个魔数，用作栈的边界标记，检测栈的溢出
 };
 
@@ -108,6 +111,6 @@ void schedule(void);
 struct task_struct* running_thread(void);
 void thread_block(enum task_status stat);
 void thread_unblock(struct task_struct* pthread);
-
+void thread_yield(void);
 extern struct list thread_ready_list, thread_all_list;
 #endif

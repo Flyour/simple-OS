@@ -1,6 +1,7 @@
 #include "list.h"
 #include "stdint.h"
 #include "interrupt.h"
+#include "global.h"
 
 /* 初始化双向链表list */
 void list_init (struct list* list){
